@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loans — Arnob Special Bank</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="seal sm">ASB</div>
+      <div class="brand-name">Arnob Special Bank<small>Private Banking</small></div>
+    </div>
+
+    <nav class="nav-group">
+      <a href="/dashboard.html" class="nav-link"><span class="dot"></span> Overview</a>
+      <a href="/transactions.html" class="nav-link"><span class="dot"></span> Transactions</a>
+      <a href="/loans.html" class="nav-link active"><span class="dot"></span> Loans</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="seal sm" id="userInitials">--</div>
+        <div>
+          <div class="name" id="userName">—</div>
+          <div class="role" id="userRole">customer</div>
+        </div>
+      </div>
+      <a href="#" class="logout-link" id="logoutBtn">Sign out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Lending</div>
+        <h1>Loans &amp; EMI calculator</h1>
+        <p>Model your repayment before you apply — figures update as you type.</p>
+      </div>
+    </div>
+
+    <div class="stat-row" style="grid-template-columns: 1.1fr 1fr;">
+      <div class="card card-pad">
+        <h3 style="margin-bottom:18px;">Apply for a loan</h3>
+        <div class="form-error" id="loanError"></div>
+        <div class="form-success" id="loanSuccess"></div>
+        <form id="loanForm">
+          <div class="field-row">
+            <div class="field">
+              <label for="amount">Loan amount (৳)</label>
+              <input type="number" id="amount" min="1000" step="100" value="50000" required>
+            </div>
+            <div class="field">
+              <label for="months">Term (months)</label>
+              <input type="number" id="months" min="3" max="120" value="12" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="rate">Interest rate (annual %)</label>
+            <input type="number" id="rate" min="1" max="30" step="0.1" value="9.0" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Submit application</button>
+        </form>
+      </div>
+
+      <div class="card card-pad" style="background:linear-gradient(160deg, var(--ink-2), var(--ink) 80%); color:var(--paper); border:none;">
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-light);">Estimated monthly payment</div>
+        <div class="mono" style="font-size:40px;font-weight:600;margin-top:14px;" id="emiPreview">৳0.00</div>
+        <div style="font-size:12.5px;color:#9FB0A8;margin-top:10px;">Based on a reducing-balance EMI schedule. This is an estimate — final terms are confirmed on approval.</div>
+        <div class="mt-24" style="border-top:1px solid rgba(228,197,126,0.2);padding-top:16px;">
+          <div class="flex-between" style="margin-bottom:8px;"><span style="color:#9FB0A8;font-size:13px;">Total repayable</span><span class="mono" id="totalRepay">৳0.00</span></div>
+          <div class="flex-between"><span style="color:#9FB0A8;font-size:13px;">Total interest</span><span class="mono" id="totalInterest">৳0.00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-24">
+      <div class="card-head">
+        <div>
+          <h3>Your applications</h3>
+          <div class="sub">Status of loans you've applied for</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Applied</th><th>Amount</th><th>Term</th><th>Rate</th><th>Monthly EMI</th><th>Status</th></tr>
+        </thead>
+        <tbody id="loanBody">
+          <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+requireAuth();
+const user = API.user();
+document.getElementById("userName").textContent = user.full_name;
+document.getElementById("userRole").textContent = user.role;
+document.getElementById("userInitials").textContent = initials(user.full_name);
+document.getElementById("logoutBtn").addEventListener("click", (e) => { e.preventDefault(); API.clearSession(); window.location.href = "/index.html"; });
+
+const amountEl = document.getElementById("amount");
+const monthsEl = document.getElementById("months");
+const rateEl = document.getElementById("rate");
+
+function calcEmiLocally(principal, annualRate, months) {
+  const r = annualRate / 12 / 100;
+  if (r === 0) return principal / months;
+  return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+}
+
+function updatePreview() {
+  const p = Number(amountEl.value || 0);
+  const r = Number(rateEl.value || 0);
+  const m = Number(monthsEl.value || 0);
+  if (p <= 0 || m <= 0) return;
+  const emi = calcEmiLocally(p, r, m);
+  const total = emi * m;
+  document.getElementById("emiPreview").textContent = "৳" + money(emi);
+  document.getElementById("totalRepay").textContent = "৳" + money(total);
+  document.getElementById("totalInterest").textContent = "৳" + money(total - p);
+}
+[amountEl, monthsEl, rateEl].forEach(el => el.addEventListener("input", updatePreview));
+updatePreview();
+
+async function loadLoans() {
+  const body = document.getElementById("loanBody");
+  const loans = await API.get("/loans/mine");
+  if (loans.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding:30px;">No applications yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = loans.map(l => `
+    <tr>
+      <td class="text-muted">${formatDate(l.created_at)}</td>
+      <td class="mono">৳${money(l.amount)}</td>
+      <td>${l.term_months} mo</td>
+      <td>${l.interest_rate}%</td>
+      <td class="mono">৳${money(l.monthly_emi)}</td>
+      <td><span class="badge badge-${l.status}">${l.status}</span></td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("loanForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("loanError");
+  const okBox = document.getElementById("loanSuccess");
+  errBox.classList.remove("show");
+  okBox.classList.remove("show");
+
+  try {
+    await API.post("/loans/apply", {
+      amount: Number(amountEl.value),
+      term_months: Number(monthsEl.value),
+      interest_rate: Number(rateEl.value),
+    });
+    okBox.textContent = "Application submitted — you'll see it below once reviewed.";
+    okBox.classList.add("show");
+    await loadLoans();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+});
+
+loadLoans();
+</script>
+</body>
+</html>

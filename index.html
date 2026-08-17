@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arnob Special Bank — Sign In</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-hero">
+    <div class="brand">
+      <div class="seal">ASB</div>
+      <div class="brand-name">Arnob Special Bank<small>Est. Private Banking</small></div>
+    </div>
+
+    <div class="auth-hero-copy">
+      <div class="eyebrow">Ledger &amp; Trust, Since Day One</div>
+      <h1>Banking that keeps its word — and its records.</h1>
+      <p>Every deposit, transfer, and withdrawal is written to an immutable ledger the moment it happens. No half-finished transfers, no surprises at month end.</p>
+
+      <div class="ledger-strip">
+        <div><strong>256-bit</strong><span>Encryption in transit</span></div>
+        <div><strong>24/7</strong><span>Ledger monitoring</span></div>
+        <div><strong>0.00%</strong><span>Hidden fees</span></div>
+      </div>
+    </div>
+
+    <div style="position:relative; font-size:12px; color:#6F8078;">© 2026 Arnob Special Bank. Member-owned, audit-first.</div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="auth-card">
+      <h2>Welcome back</h2>
+      <div class="subtitle">Sign in to view your accounts and ledger.</div>
+
+      <div class="form-error" id="loginError"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign in</button>
+      </form>
+
+      <div class="auth-switch">
+        New to Arnob Special Bank? <a href="/register.html">Open an account</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  if (API.token()) window.location.href = "/dashboard.html";
+
+  const form = document.getElementById("loginForm");
+  const errBox = document.getElementById("loginError");
+  const btn = document.getElementById("loginBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errBox.classList.remove("show");
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+
+    try {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const data = await API.post("/auth/login", { email, password });
+      API.setSession(data.token, data.user);
+      const dest = (data.user.role === "admin" || data.user.role === "teller") ? "/admin.html" : "/dashboard.html";
+      window.location.href = dest;
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.add("show");
+      btn.disabled = false;
+      btn.textContent = "Sign in";
+    }
+  });
+</script>
+</body>
+</html>

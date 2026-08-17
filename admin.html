@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Arnob Special Bank</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="seal sm">ASB</div>
+      <div class="brand-name">Arnob Special Bank<small>Admin Console</small></div>
+    </div>
+
+    <nav class="nav-group">
+      <a href="/admin.html" class="nav-link active"><span class="dot"></span> Overview</a>
+      <a href="#customers" class="nav-link" onclick="document.getElementById('customersCard').scrollIntoView({behavior:'smooth'})"><span class="dot"></span> Customers</a>
+      <a href="#loans" class="nav-link" onclick="document.getElementById('loansCard').scrollIntoView({behavior:'smooth'})"><span class="dot"></span> Loan approvals</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="seal sm" id="userInitials">--</div>
+        <div>
+          <div class="name" id="userName">—</div>
+          <div class="role" id="userRole">admin</div>
+        </div>
+      </div>
+      <a href="#" class="logout-link" id="logoutBtn">Sign out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Bank Operations</div>
+        <h1>Admin overview</h1>
+        <p>Bank-wide figures, customer status, and pending loan decisions.</p>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="label">Total customers</div><div class="value" id="statCustomers">—</div></div>
+      <div class="stat-box"><div class="label">Total accounts</div><div class="value" id="statAccounts">—</div></div>
+      <div class="stat-box"><div class="label">Total deposits</div><div class="value" id="statDeposits">—</div></div>
+      <div class="stat-box"><div class="label">Transactions today</div><div class="value" id="statTxns">—</div></div>
+      <div class="stat-box"><div class="label">Pending loans</div><div class="value" id="statLoans">—</div></div>
+    </div>
+
+    <div class="card" id="customersCard">
+      <div class="card-head">
+        <div>
+          <h3>Customers</h3>
+          <div class="sub">Search and manage account status</div>
+        </div>
+        <input type="text" id="customerSearch" placeholder="Search name, email, phone…" style="padding:9px 14px;border:1px solid var(--border);border-radius:8px;width:240px;">
+      </div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="customerBody">
+          <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card mt-24" id="loansCard">
+      <div class="card-head">
+        <div>
+          <h3>Loan applications</h3>
+          <div class="sub">Approve or reject pending requests</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Applicant</th><th>Amount</th><th>Term</th><th>EMI</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="loanBody">
+          <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

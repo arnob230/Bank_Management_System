@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transactions — Arnob Special Bank</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="seal sm">ASB</div>
+      <div class="brand-name">Arnob Special Bank<small>Private Banking</small></div>
+    </div>
+
+    <nav class="nav-group">
+      <a href="/dashboard.html" class="nav-link"><span class="dot"></span> Overview</a>
+      <a href="/transactions.html" class="nav-link active"><span class="dot"></span> Transactions</a>
+      <a href="/loans.html" class="nav-link"><span class="dot"></span> Loans</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="seal sm" id="userInitials">--</div>
+        <div>
+          <div class="name" id="userName">—</div>
+          <div class="role" id="userRole">customer</div>
+        </div>
+      </div>
+      <a href="#" class="logout-link" id="logoutBtn">Sign out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Full Ledger</div>
+        <h1>Transaction history</h1>
+        <p>Every deposit, withdrawal, and transfer — filterable by account.</p>
+      </div>
+      <select id="accountFilter" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--paper-2);"></select>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Reference</th><th>Type</th><th>Note</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Balance after</th></tr>
+        </thead>
+        <tbody id="txnBody">
+          <tr><td colspan="6" class="text-center text-muted" style="padding:30px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+requireAuth();
+const user = API.user();
+document.getElementById("userName").textContent = user.full_name;
+document.getElementById("userRole").textContent = user.role;
+document.getElementById("userInitials").textContent = initials(user.full_name);
+document.getElementById("logoutBtn").addEventListener("click", (e) => { e.preventDefault(); API.clearSession(); window.location.href = "/index.html"; });
+
+let accounts = [];
+
+async function init() {
+  accounts = await API.get("/accounts");
+  const sel = document.getElementById("accountFilter");
+  sel.innerHTML = `<option value="all">All accounts</option>` + accounts.map(a => `<option value="${a.id}">${a.account_number} — ${a.account_type}</option>`).join("");
+  sel.addEventListener("change", render);
+  render();
+}
+
+async function render() {
+  const body = document.getElementById("txnBody");
+  const filter = document.getElementById("accountFilter").value;
+  const targetAccounts = filter === "all" ? accounts : accounts.filter(a => String(a.id) === filter);
+
+  if (targetAccounts.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding:30px;">No accounts.</td></tr>`;
+    return;
+  }
+
+  const all = [];
+  for (const acc of targetAccounts) {
+    const txns = await API.get(`/accounts/${acc.id}/transactions`);
+    all.push(...txns.map(t => ({ ...t, account_number: acc.account_number })));
+  }
+  all.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (all.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding:30px;">No transactions on this account yet.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = all.map(t => `
+    <tr>
+      <td class="text-muted">${formatDate(t.created_at)}</td>
+      <td class="mono">${t.ref_id}</td>
+      <td><span class="badge badge-${t.type}">${t.type.replace('_',' ')}</span></td>
+      <td class="text-muted">${t.note || '—'}</td>
+      <td style="text-align:right;" class="${t.type === 'deposit' || t.type === 'transfer_in' ? 'amt-pos' : 'amt-neg'}">
+        ${t.type === 'deposit' || t.type === 'transfer_in' ? '+' : '−'}৳${money(t.amount)}
+      </td>
+      <td style="text-align:right;" class="mono text-muted">৳${money(t.balance_after)}</td>
+    </tr>
+  `).join("");
+}
+
+init();
+</script>
+</body>
+</html>
